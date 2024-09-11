@@ -4,7 +4,6 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.command.defaults.ReloadCommand;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,13 +29,11 @@ public final class Nucleus extends JavaPlugin implements Listener {
 
     private static final String PREFIX = ChatColor.DARK_RED + "§ Nucleus: " + ChatColor.WHITE;
 
-    private static final Color COLOR = new Color(170, 0, 0);
-
-    private static Scoreboard board;
-    private static Objective deaths;
+    private static Scoreboard   board;
+    private static Objective    deaths;
 
     private static CachedServerIcon icon;
-    private static BukkitTask task;
+    private static BukkitTask       task;
 
     @Override
     public void onEnable() {
@@ -50,19 +47,17 @@ public final class Nucleus extends JavaPlugin implements Listener {
         }
         deaths.setDisplayName(ChatColor.DARK_RED + "☠");
         deaths.setRenderType(RenderType.INTEGER);
-        for (Player player : getServer().getOnlinePlayers()) {
-            player.setScoreboard(board);
-            player.setDisplayName(skulls(player) + player.getName());
-        }
+        getServer().getOnlinePlayers().forEach(this::update);
         getServer().setDefaultGameMode(GameMode.SURVIVAL);
         getServer().setSpawnRadius(0);
         for (World world : getServer().getWorlds()) {
             world.setDifficulty(Difficulty.HARD);
+            world.setHardcore(true);
             world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true);
         }
         BufferedImage image = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
-        g.setColor(COLOR);
+        g.setColor(new Color(170, 0, 0));
         g.setFont(new Font("Liberation Sans", Font.PLAIN, 32));
         g.drawString("§", 24, 40);
         g.dispose();
@@ -78,7 +73,8 @@ public final class Nucleus extends JavaPlugin implements Listener {
                     player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(skulls(player)));
                 }
             }
-        }.runTaskTimerAsynchronously(this, 20, 20);
+        }.runTaskTimer(this, 20, 20);
+        System.gc();
         print("enabled", "version: " + getServer().getVersion(), "bukkit: " + getServer().getBukkitVersion(), "name: " + getServer().getName());
     }
 
@@ -145,11 +141,8 @@ public final class Nucleus extends JavaPlugin implements Listener {
         Item drop = e.getEntity();
         ItemMeta meta = drop.getItemStack().getItemMeta();
         assert meta != null;
-        if (meta.hasDisplayName()) {
-            drop.setCustomName(meta.getDisplayName());
-        } else {
-            drop.setCustomName(Arrays.stream(drop.getItemStack().getType().name().replace("_", " ").split(" ")).map(word -> word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase()).collect(Collectors.joining(" ")));
-        }
+        String name = (meta.hasDisplayName()) ? meta.getDisplayName() : Arrays.stream(drop.getItemStack().getType().name().toLowerCase().split("_")).map(word -> word.substring(0, 1).toUpperCase() + word.substring(1)).collect(Collectors.joining(" "));
+        drop.setCustomName(name);
         drop.setCustomNameVisible(true);
     }
 
@@ -166,16 +159,17 @@ public final class Nucleus extends JavaPlugin implements Listener {
         }
     }
 
-    private static Player update(Player player) {
+    private Player update(Player player) {
         player.setScoreboard(board);
-        player.setDisplayName(skulls(player) + player.getName());
-        player.setPlayerListName(skulls(player) + player.getName());
+        String skulls = skulls(player);
+        player.setDisplayName(skulls + player.getName());
+        player.setPlayerListName(skulls + player.getName());
         return player;
     }
 
     private static String skulls(Player player) {
-        int d = 3 - deaths.getScore(player.getName()).getScore();
-        return ChatColor.DARK_RED +  "☠".repeat(Math.max(0, d)) + (d == 0 ? "" : " ") + ChatColor.WHITE;
+        int lives = Math.max(0, 3 - deaths.getScore(player.getName()).getScore());
+        return ChatColor.DARK_RED + "☠".repeat(lives) + (lives > 0 ? " " : "") + ChatColor.WHITE;
     }
 
     private static void print(String... strings) {
