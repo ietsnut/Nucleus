@@ -1,0 +1,4 @@
+name: Nucleus
+version: '1'
+main: com.ietsnut.nucleus.Nucleus
+api-version: '1.21'
