@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'com.ietsnut'
-version = '1'
+version = '2'
 
 repositories {
     mavenCentral()

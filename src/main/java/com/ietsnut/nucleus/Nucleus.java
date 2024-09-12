@@ -27,13 +27,37 @@ import java.util.stream.Collectors;
 
 public final class Nucleus extends JavaPlugin implements Listener {
 
-    private static final String PREFIX = ChatColor.DARK_RED + "§ Nucleus: " + ChatColor.WHITE;
+    private static final String JOIN    = ChatColor.GREEN + "" + ChatColor.ITALIC + ">>> " + ChatColor.WHITE + ChatColor.ITALIC;
+    private static final String QUIT    = ChatColor.RED + "" + ChatColor.ITALIC + "<<< " + ChatColor.WHITE + ChatColor.ITALIC;
+    private static final String PREFIX  = ChatColor.DARK_RED + "§ Nucleus: " + ChatColor.WHITE;
+    private static final String MOTD    = ChatColor.DARK_RED + "Ｎｕｃｌｅｕｓ";
+
+    private static final String[] SKULLS = {
+            ChatColor.DARK_RED + "☠☠☠ " +   ChatColor.WHITE,
+            ChatColor.DARK_RED + "☠☠ " +    ChatColor.WHITE,
+            ChatColor.DARK_RED + "☠ " +     ChatColor.WHITE,
+            ChatColor.WHITE + ""
+    };
+
+    private static final CachedServerIcon ICON;
 
     private static Scoreboard   board;
     private static Objective    deaths;
+    private static BukkitTask   task;
 
-    private static CachedServerIcon icon;
-    private static BukkitTask       task;
+    static {
+        BufferedImage image = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        g.setColor(new Color(170, 0, 0));
+        g.setFont(new Font("Liberation Sans", Font.PLAIN, 32));
+        g.drawString("§", 24, 40);
+        g.dispose();
+        try {
+            ICON = Bukkit.loadServerIcon(image);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public void onEnable() {
@@ -55,17 +79,6 @@ public final class Nucleus extends JavaPlugin implements Listener {
             world.setHardcore(true);
             world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true);
         }
-        BufferedImage image = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = image.createGraphics();
-        g.setColor(new Color(170, 0, 0));
-        g.setFont(new Font("Liberation Sans", Font.PLAIN, 32));
-        g.drawString("§", 24, 40);
-        g.dispose();
-        try {
-            icon = getServer().loadServerIcon(image);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
         task = new BukkitRunnable() {
             @Override
             public void run() {
@@ -81,7 +94,7 @@ public final class Nucleus extends JavaPlugin implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         Player player = update(e.getPlayer());
-        e.setJoinMessage(ChatColor.GREEN + "" + ChatColor.ITALIC + ">>> " + ChatColor.WHITE + ChatColor.ITALIC + player.getName());
+        e.setJoinMessage(JOIN + player.getName());
         if (deaths.getScore(player.getName()).getScore() >= 3) {
             player.setGameMode(GameMode.SPECTATOR);
         } else {
@@ -91,7 +104,7 @@ public final class Nucleus extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        e.setQuitMessage(ChatColor.RED + "" + ChatColor.ITALIC + "<<< " + ChatColor.WHITE + ChatColor.ITALIC + update(e.getPlayer()).getName());
+        e.setQuitMessage(QUIT + update(e.getPlayer()).getName());
     }
 
     @EventHandler
@@ -148,15 +161,13 @@ public final class Nucleus extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onList(ServerListPingEvent e) {
-        e.setMotd(ChatColor.DARK_RED + "Ｎｕｃｌｅｕｓ");
-        e.setServerIcon(icon);
+        e.setMotd(MOTD);
+        e.setServerIcon(ICON);
     }
 
     @EventHandler
     public void onPlayerCommand(PlayerCommandPreprocessEvent e) {
-        if (!e.getPlayer().isOp()) {
-            e.setCancelled(true);
-        }
+        if (!e.getPlayer().isOp()) e.setCancelled(true);
     }
 
     private Player update(Player player) {
@@ -168,15 +179,13 @@ public final class Nucleus extends JavaPlugin implements Listener {
     }
 
     private static String skulls(Player player) {
-        int lives = Math.max(0, 3 - deaths.getScore(player.getName()).getScore());
-        return ChatColor.DARK_RED + "☠".repeat(lives) + (lives > 0 ? " " : "") + ChatColor.WHITE;
+        return SKULLS[Math.min(3, deaths.getScore(player.getName()).getScore())];
     }
 
     private static void print(String... strings) {
-        ConsoleCommandSender console = Bukkit.getConsoleSender();
-        console.sendMessage(PREFIX + strings[0]);
+        Bukkit.getConsoleSender().sendMessage(PREFIX + strings[0]);
         for (int i = 1; i < strings.length; i++) {
-            console.sendMessage(ChatColor.WHITE + "\t~ " + strings[i]);
+            Bukkit.getConsoleSender().sendMessage(ChatColor.WHITE + "\t~ " + strings[i]);
         }
     }
 
